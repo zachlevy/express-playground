@@ -1,5 +1,6 @@
-const express = require('express');
-const router = express.Router();
+const express = require('express')
+const router = express.Router()
+const Xray = require('x-ray')
 
 /* GET home page. */
 router.get('/pages', function(req, res, next) {
@@ -117,5 +118,17 @@ router.get('/themes', function(req, res, next) {
   ]
   res.json(themes)
 });
+
+router.get("/scrape", function(req, res, next) {
+  console.log("scrape")
+  const x = Xray()
+  x('http://firstexitmedia.com', 'img.logo', [{
+    src: "@src",
+    alt: "@alt"
+  }])(function(err, obj) {
+    console.log(obj)
+    res.json(obj)
+  })
+})
 
 module.exports = router;
