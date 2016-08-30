@@ -2,6 +2,14 @@ const express = require('express')
 const router = express.Router()
 const Xray = require('x-ray')
 
+const MongoClient = require('mongodb').MongoClient
+const assert = require('assert');
+
+// Connection URL
+var url = 'mongodb://localhost:27017/playground';
+
+
+
 /* GET home page. */
 router.get('/pages', function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*")
@@ -121,14 +129,56 @@ router.get('/themes', function(req, res, next) {
 
 router.get("/scrape", function(req, res, next) {
   console.log("scrape")
-  const x = Xray()
-  x('http://firstexitmedia.com', 'img.logo', [{
+  const x = Xray({
+    filters: {
+      // get rid of bad wysiwyg formatting hacks
+      clean: function (text) {
+        return text.replace(/\n+/g, "\n").replace(/\s+/g, " ").replace(/^\s/, "").replace(/\t+/g, "").replace(/\s$/, "")
+      }
+    }
+  })
+  x("http://firstexitmedia.com", "img.logo", [{
     src: "@src",
     alt: "@alt"
   }])(function(err, obj) {
     console.log(obj)
+
+  })
+  x("http://www.scantech.ca/mysite5/Scantech_%202012%20Website/Scantech_%202012%20Website/about_us.htm", "p", [{
+    text: "@text | clean"
+  }])(function(err, obj) {
+    console.log(obj)
+    obj.forEach(function(o) { console.log(o.text)})
     res.json(obj)
   })
+})
+
+router.get("/mongo", function(req, res, next) {
+  console.log("mongo")
+  // Use connect method to connect to the server
+  MongoClient.connect(url, function(err, db) {
+    assert.equal(null, err)
+    console.log("Connected successfully to server")
+
+    // insert
+    // db.pages.insert([{
+    //   domain: "firstexitmedia",
+    //   test: 1
+    // }])
+    //
+    // get
+    const collection = db.collection("pages")
+    // Find some documents
+    collection.find({"domain": "firstexitmedia.com"}).toArray(function(err, docs) {
+      assert.equal(err, null)
+      db.close()
+      console.log("Found the following records")
+      console.log(docs)
+      res.json(docs)
+    })
+
+  })
+
 })
 
 module.exports = router;
